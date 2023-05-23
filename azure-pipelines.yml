@@ -1,0 +1,28 @@
+trigger:
+  branches:
+    include:
+      - master
+
+jobs:
+  - job: deploy
+    displayName: Deploy app
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+      - checkout: self
+      - script: |
+          curl -sL https://fly.io/install.sh | sh
+          echo 'export FLYCTL_INSTALL="/home/vsts/.fly"' >> $HOME/.bashrc
+          echo 'export PATH="$FLYCTL_INSTALL/bin:$PATH"' >> $HOME/.bashrc
+          source $HOME/.bashrc || source $HOME/.bash_profile
+          flyctl_path="/home/vsts/.fly/bin/flyctl"
+          if test -f "$flyctl_path"; then
+            chmod +x "$flyctl_path"
+            export PATH="$(dirname "$flyctl_path"):$PATH"
+          else
+            echo "Error: flyctl not found at $flyctl_path"
+            exit 1
+          fi
+          flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: $(flyToken)
